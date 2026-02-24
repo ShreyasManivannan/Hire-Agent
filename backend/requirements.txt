@@ -1,0 +1,34 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+python-multipart
+websockets
+pydantic
+
+# PDF Processing
+PyMuPDF
+
+# RAG & Embeddings
+chromadb
+sentence-transformers
+
+# LLM & Fine-tuning
+transformers
+torch>=2.0.0
+accelerate
+peft
+bitsandbytes
+
+# Analysis
+opencv-python-headless
+openai-whisper
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Report Generation
+fpdf2
+
+# Utilities
+python-dotenv
+aiofiles
+pillow>=10.0.0

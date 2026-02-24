@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HireAgent — AI Interview System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #1f1f2e;
+    --border2: #2a2a3a;
+    --accent: #6c63ff;
+    --accent2: #ff6b6b;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --text2: #8888aa;
+    --text3: #44445a;
+    --glow: rgba(108,99,255,0.15);
+    --glow2: rgba(255,107,107,0.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== LAYOUT ===== */
+  #app { position: relative; z-index: 1; min-height: 100vh; }
+
+  /* ===== NAV ===== */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.6; transform:scale(0.85); }
+  }
+  .nav-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .status-pill {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .status-pill.online { border-color: var(--accent3); color: var(--accent3); }
+  .status-pill.session { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== PAGES ===== */
+  .page { display: none; animation: fadeIn 0.4s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+  /* ===== LANDING ===== */
+  #page-landing {
+    min-height: calc(100vh - 70px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    margin-bottom: 32px;
+    letter-spacing: 0.06em;
+  }
+  .hero-badge span { color: var(--accent); }
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+    max-width: 760px;
+  }
+  .hero-title em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    color: var(--text2);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 520px;
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 0 24px rgba(108,99,255,0.35);
+  }
+  .btn-primary:hover { background: #7c75ff; box-shadow: 0 0 32px rgba(108,99,255,0.5); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--accent2); color: white; }
+  .btn-danger:hover { background: #ff5252; transform: translateY(-1px); }
+  .btn-success { background: var(--accent3); color: #0a0a0f; font-weight: 600; }
+  .btn-success:hover { background: #56ffaa; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-sm { padding: 8px 18px; font-size: 0.82rem; }
+
+  /* Feature cards */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    max-width: 900px;
+    margin-top: 60px;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: left;
+    transition: border-color 0.2s;
+  }
+  .feature-card:hover { border-color: var(--accent); }
+  .feature-icon { font-size: 1.5rem; margin-bottom: 10px; }
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .feature-desc { font-size: 0.78rem; color: var(--text2); line-height: 1.5; }
+
+  /* ===== SETUP PAGE ===== */
+  #page-setup { padding: 48px 40px; max-width: 860px; margin: 0 auto; }
+  .page-header { margin-bottom: 40px; }
+  .page-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .page-header p { color: var(--text2); font-size: 0.92rem; }
+
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media(max-width:640px){ .setup-grid { grid-template-columns:1fr; } }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed var(--border2);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--glow);
+  }
+  .dropzone input { display: none; }
+  .dropzone-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .dropzone-title { font-size: 0.95rem; font-weight: 500; margin-bottom: 4px; }
+  .dropzone-sub { font-size: 0.78rem; color: var(--text2); }
+  .dropzone.loaded { border-color: var(--accent3); border-style: solid; }
+  .dropzone.loaded .dropzone-icon { font-size: 2rem; }
+
+  /* Form */
+  .form-group { margin-bottom: 20px; }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text2);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* Skills tags */
+  .skills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+  }
+  .skill-tag {
+    padding: 4px 12px;
+    background: var(--glow);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .skill-tag:hover { background: rgba(108,99,255,0.25); }
+  .skill-tag .remove { font-size: 0.9rem; line-height: 1; }
+
+  /* Domain checkboxes */
+  .domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .domain-check { display: none; }
+  .domain-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+  }
+  .domain-check:checked + .domain-label { border-color: var(--accent); color: var(--accent); background: var(--glow); }
+  .domain-check-box {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border2);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+  }
+  .domain-check:checked + .domain-label .domain-check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ===== INTERVIEW PAGE ===== */
+  #page-interview { padding: 32px 40px; max-width: 1100px; margin: 0 auto; }
+  .interview-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+  @media(max-width:860px){ .interview-layout { grid-template-columns:1fr; } }
+
+  /* Timer */
+  .timer-ring-wrap { position: relative; width: 80px; height: 80px; }
+  svg.ring { width:80px; height:80px; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+  .ring-fill { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 220; transition: stroke-dashoffset 1s linear; }
+  .timer-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 0.82rem; font-weight: 500;
+  }
+
+  /* Question card */
+  .q-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .q-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+  .q-meta { display: flex; align-items: center; gap: 12px; }
+  .q-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text3);
+  }
+  .topic-badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .topic-badge.python { background: rgba(59,175,255,0.12); color: #3bbfff; border: 1px solid rgba(59,175,255,0.25); }
+  .topic-badge.aws { background: rgba(255,168,59,0.12); color: #ffa83b; border: 1px solid rgba(255,168,59,0.25); }
+  .topic-badge.dsa { background: rgba(108,99,255,0.12); color: #a78bfa; border: 1px solid rgba(108,99,255,0.25); }
+  .topic-badge.ml { background: rgba(67,233,123,0.12); color: var(--accent3); border: 1px solid rgba(67,233,123,0.25); }
+  .topic-badge.system_design { background: rgba(255,107,107,0.12); color: var(--accent2); border: 1px solid rgba(255,107,107,0.25); }
+  .topic-badge.general { background: rgba(136,136,170,0.12); color: var(--text2); border: 1px solid var(--border2); }
+
+  .q-body { padding: 28px 24px; }
+  .q-text {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    font-weight: 400;
+    margin-bottom: 24px;
+    min-height: 60px;
+  }
+  .q-text.typing::after {
+    content: '|';
+    animation: blink 0.7s infinite;
+    color: var(--accent);
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Answer area */
+  .answer-area {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .answer-area textarea {
+    background: transparent;
+    border: none;
+    min-height: 120px;
+    font-size: 0.95rem;
+    padding: 4px 0;
+  }
+  .answer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .word-count { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text3); }
+  .answer-actions { display: flex; gap: 10px; }
+
+  /* Sidebar */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .sidebar-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .sidebar-card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+
+  /* Metrics */
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .metric-label { font-size: 0.8rem; color: var(--text2); }
+  .metric-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 12px;
+    overflow: hidden;
+  }
+  .metric-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .metric-bar.green { background: var(--accent3); }
+  .metric-bar.blue { background: var(--accent); }
+  .metric-bar.red { background: var(--accent2); }
+  .metric-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* Video monitor */
+  .video-wrap {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--surface2);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  #video-el { width:100%; height:100%; object-fit: cover; border-radius: 8px; }
+  .video-overlay {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .v-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .v-badge.live { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Topic progress */
+  .topic-list { display: flex; flex-direction: column; gap: 8px; }
+  .topic-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    font-size: 0.82rem;
+  }
+  .topic-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .topic-dot.done { background: var(--accent3); }
+  .topic-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.5s infinite; }
+  .topic-dot.pending { background: var(--border2); }
+  .topic-name { flex:1; text-transform: capitalize; }
+  .topic-score { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text2); }
+
+  /* AI detection gauge */
+  .gauge-wrap { display: flex; align-items: center; gap: 14px; }
+  .gauge {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .gauge-fill { height: 100%; border-radius: 4px; transition: width 0.6s, background 0.6s; }
+  .gauge-label { font-family: 'DM Mono', monospace; font-size: 0.75rem; font-weight: 500; }
+  .gauge-label.safe { color: var(--accent3); }
+  .gauge-label.warn { color: #ffa500; }
+  .gauge-label.danger { color: var(--accent2); }
+
+  /* Feedback toast */
+  .feedback-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    max-width: 320px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+  }
+  .feedback-toast.show { transform: none; opacity: 1; }
+  .toast-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .toast-score.high { color: var(--accent3); }
+  .toast-score.mid { color: #ffa500; }
+  .toast-score.low { color: var(--accent2); }
+  .toast-label { font-size: 0.78rem; color: var(--text2); margin-bottom: 10px; }
+  .toast-detail { font-size: 0.82rem; color: var(--text2); line-height: 1.5; }
+
+  /* ===== REPORT PAGE ===== */
+  #page-report { padding: 48px 40px; max-width: 940px; margin: 0 auto; }
+
+  .report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .candidate-info h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+  .candidate-info p { color: var(--text2); font-size: 0.85rem; margin-top: 4px; }
+
+  .recommendation-box {
+    padding: 20px 28px;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 160px;
+  }
+  .recommendation-box.hire { background: rgba(67,233,123,0.1); border: 1.5px solid var(--accent3); }
+  .recommendation-box.maybe { background: rgba(255,165,0,0.1); border: 1.5px solid #ffa500; }
+  .recommendation-box.nohire { background: rgba(255,107,107,0.1); border: 1.5px solid var(--accent2); }
+  .rec-decision {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .rec-decision.hire { color: var(--accent3); }
+  .rec-decision.maybe { color: #ffa500; }
+  .rec-decision.nohire { color: var(--accent2); }
+  .rec-conf { font-size: 0.75rem; color: var(--text2); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media(max-width:640px){ .report-grid { grid-template-columns:1fr; } }
+
+  .report-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .report-card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 18px;
+  }
+
+  /* Score donut */
+  .score-display {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .score-donut { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+  .score-donut svg { width:90px; height:90px; transform:rotate(-90deg); }
+  .donut-bg { fill:none; stroke:var(--border); stroke-width:7; }
+  .donut-fill { fill:none; stroke-width:7; stroke-linecap:round; stroke-dasharray:251; transition: stroke-dashoffset 1s ease; }
+  .score-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+  }
+  .score-num small { font-size: 0.55rem; color: var(--text2); font-weight: 400; }
+
+  .score-breakdown { flex: 1; }
+  .breakdown-item { margin-bottom: 10px; }
+  .breakdown-label { font-size: 0.78rem; color: var(--text2); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .breakdown-label span { font-family: 'DM Mono', monospace; color: var(--text); }
+  .breakdown-bar { height:3px; background:var(--border); border-radius:2px; }
+  .breakdown-bar-fill { height:100%; border-radius:2px; background: var(--accent); transition: width 1s ease; }
+
+  /* AI detection section */
+  .ai-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .ai-big-gauge {
+    width: 100%;
+    height: 12px;
+    background: linear-gradient(90deg, var(--accent3) 0%, #ffa500 50%, var(--accent2) 100%);
+    border-radius: 6px;
+    position: relative;
+    margin: 16px 0 8px;
+  }
+  .ai-needle {
+    position: absolute;
+    top: -6px;
+    width: 3px;
+    height: 24px;
+    background: white;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 1s ease;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+  }
+  .ai-labels { display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .ai-result {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 12px;
+  }
+
+  /* Responses table */
+  .responses-section { margin-top: 24px; }
+  .responses-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .response-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  .response-item:hover { border-color: var(--border2); }
+  .resp-q {
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .resp-q-num { color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.75rem; margin-top: 2px; flex-shrink:0; }
+  .resp-a { font-size: 0.82rem; color: var(--text2); line-height: 1.5; margin-left: 26px; }
+  .resp-scores {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    margin-left: 26px;
+  }
+  .resp-score-pill {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+  }
+  .pill-score { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .pill-ai { background: rgba(255,107,107,0.12); color: var(--accent2); }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--text2);
+    white-space: pre;
+    overflow-x: auto;
+    margin-top: 24px;
+    line-height: 1.6;
+  }
+
+  /* MCP tools panel */
+  .mcp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }
+  .mcp-tool {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 14px;
+    transition: border-color 0.2s;
+  }
+  .mcp-tool:hover { border-color: var(--accent); }
+  .mcp-tool-name { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 4px; }
+  .mcp-tool-desc { font-size: 0.75rem; color: var(--text2); line-height: 1.4; }
+  .mcp-status { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.68rem; color: var(--accent3); }
+  .mcp-status-dot { width:5px; height:5px; border-radius:50%; background: var(--accent3); }
+
+  /* Loading spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Section separator */
+  .section-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* Responsive */
+  @media(max-width:600px){
+    nav { padding: 14px 20px; }
+    #page-setup, #page-interview, #page-report, #page-landing { padding: 24px 20px; }
+    .interview-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Log stream */
+  .log-stream {
+    background: #000;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    max-height: 120px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  .log-line { color: var(--text3); margin-bottom: 2px; }
+  .log-line.info { color: var(--accent); }
+  .log-line.success { color: var(--accent3); }
+  .log-line.warn { color: #ffa500; }
+
+  /* MCP demo section (in interview sidebar) */
+  .mcp-call-log { max-height: 100px; overflow-y: auto; }
+  .mcp-log-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text2);
+  }
+  .mcp-log-item:last-child { border: none; }
+  .mcp-log-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .mcp-log-dot.ok { background: var(--accent3); }
+  .mcp-log-dot.pending { background: var(--accent); animation: pulse 1s infinite; }
+
+  /* Confetti particles */
+  .confetti-piece {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    top: -10px;
+    animation: confettiFall linear forwards;
+    z-index: 999;
+    pointer-events: none;
+    border-radius: 2px;
+  }
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      HireAgent
+    </div>
+    <div class="nav-status">
+      <span id="nav-session-info" style="display:none" class="status-pill session">Session Active</span>
+      <span class="status-pill online">System Online</span>
+      <span id="nav-timer" style="font-size:0.8rem;color:var(--text2)"></span>
+    </div>
+  </nav>
+
+  <!-- PAGE: LANDING -->
+  <div id="page-landing" class="page active">
+    <div class="hero-badge">✦ <span>AI-Powered</span> Technical Interview System</div>
+    <h1 class="hero-title">Interview smarter,<br><em>hire better</em></h1>
+    <p class="hero-sub">Multi-agent AI system with RAG-based question generation, real-time AI detection, adaptive interviewing, and comprehensive analytics.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="showPage('setup')">▶ Start Interview</button>
+      <button class="btn btn-secondary" onclick="showPage('setup'); scrollTo(0,0)">View Architecture</button>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">Resume Parser</div>
+        <div class="feature-desc">NLP-powered extraction of skills, experience, and projects using spaCy</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">RAG Questions</div>
+        <div class="feature-desc">ChromaDB vector search with curated question bank across 5 domains</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">4-bit Quantized LLM</div>
+        <div class="feature-desc">BitsAndBytes NF4 quantization with LoRA fine-tuning support</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🕵️</div>
+        <div class="feature-title">AI Detection</div>
+        <div class="feature-desc">Perplexity + burstiness analysis to detect AI-generated answers</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔀</div>
+        <div class="feature-title">Adaptive Flow</div>
+        <div class="feature-desc">Dynamic topic switching based on performance and time limits</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">MCP Protocol</div>
+        <div class="feature-desc">Model Context Protocol orchestration with structured tool outputs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: SETUP -->
+  <div id="page-setup" class="page">
+    <div class="page-header">
+      <h2>Interview Setup</h2>
+      <p>Configure the interview session and upload resume</p>
+    </div>
+
+    <div class="setup-grid">
+      <!-- Left: Resume Upload -->
+      <div>
+        <div class="form-group">
+          <label>Resume Upload</label>
+          <div class="dropzone" id="dropzone" onclick="document.getElementById('resume-file').click()" 
+               ondragover="event.preventDefault();this.classList.add('drag-over')"
+               ondragleave="this.classList.remove('drag-over')"
+               ondrop="handleDrop(event)">
+            <input type="file" id="resume-file" accept=".pdf,.txt,.doc" onchange="handleFileSelect(event)">
+            <div class="dropzone-icon" id="dz-icon">📎</div>
+            <div class="dropzone-title" id="dz-title">Drop resume here or click to upload</div>
+            <div class="dropzone-sub" id="dz-sub">PDF, DOC, TXT — or paste text below</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Resume Text (paste or auto-filled)</label>
+          <textarea id="resume-text" rows="8" placeholder="Paste resume content here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Detected Skills</label>
+          <div class="skills-container" id="skills-container">
+            <span style="font-size:0.78rem;color:var(--text3);padding:4px">Skills appear after parsing...</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="parseResume()" style="margin-top:8px">
+          🔍 Parse Resume
+        </button>
+      </div>
+
+      <!-- Right: Config -->
+      <div>
+        <div class="form-group">
+          <label>Candidate Name</label>
+          <input type="text" id="candidate-name" placeholder="John Doe" value="John Doe">
+        </div>
+
+        <div class="form-group">
+          <label>Duration (minutes)</label>
+          <input type="number" id="duration" value="5" min="1" max="60">
+        </div>
+
+        <div class="form-group">
+          <label>Difficulty Level</label>
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Topic Domains</label>
+          <div class="domain-grid">
+            <div>
+              <input type="checkbox" class="domain-check" id="d-python" value="python" checked>
+              <label class="domain-label" for="d-python">
+                <span class="domain-check-box">✓</span> Python
+              </label>
+            </div>
+            <div>
+              <input type="checkbox" class="domain-check" id="d-dsa" value="dsa" checked>
+              <label class="domain-label" for="d-dsa">
+                <span class="domain-check-box">✓</span> DSA
+              </label>
+            </div>
+            <div>
+              <input type="checkbox" class="domain-check" id="d-sys" value="system_design" checked>
+              <label class="domain-label" for="d-sys">
+                <span class="domain-check-box">✓</span> System Design
+              </label>
+            </div>
+            <div>
+              <input type="checkbox" class="domain-check" id="d-aws" value="aws">
+              <label class="domain-label" for="d-aws">
+                <span class="domain-check-box">✓</span> AWS
+              </label>
+            </div>
+            <div>
+              <input type="checkbox" class="domain-check" id="d-ml" value="ml">
+              <label class="domain-label" for="d-ml">
+                <span class="domain-check-box">✓</span> ML/AI
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Monitoring</label>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="text-transform:none;font-size:0.87rem;display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="enable-video" checked style="width:auto"> Enable webcam monitoring
+            </label>
+            <label style="text-transform:none;font-size:0.87rem;display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="enable-audio" checked style="width:auto"> Enable audio analysis
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="startInterview()" style="width:100%;margin-top:8px">
+          ▶ Start Interview
+        </button>
+      </div>
+    </div>
+
+    <!-- System logs -->
+    <div class="section-sep"></div>
+    <div>
+      <label>System Log</label>
+      <div class="log-stream" id="setup-log">
+        <div class="log-line info">[HireAgent] System initialized</div>
+        <div class="log-line success">[RAG] ChromaDB loaded — 25 questions indexed</div>
+        <div class="log-line info">[LLM] Phi-2 loaded with 4-bit NF4 quantization</div>
+        <div class="log-line success">[MCP] 5 tools registered</div>
+        <div class="log-line info">[AI Detector] Perplexity + burstiness model ready</div>
+      </div>
+    </div>
+
+    <!-- MCP Tools -->
+    <div class="section-sep"></div>
+    <label>MCP Tool Registry</label>
+    <div class="mcp-grid">
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">resume_parser</div>
+        <div class="mcp-tool-desc">Parse PDF/text, extract skills + experience via NLP</div>
+        <div class="mcp-status"><div class="mcp-status-dot"></div> registered</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">question_generator</div>
+        <div class="mcp-tool-desc">RAG-based question generation with ChromaDB retrieval</div>
+        <div class="mcp-status"><div class="mcp-status-dot"></div> registered</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">answer_evaluator</div>
+        <div class="mcp-tool-desc">LLM-based answer scoring with feedback generation</div>
+        <div class="mcp-status"><div class="mcp-status-dot"></div> registered</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">ai_detector</div>
+        <div class="mcp-tool-desc">Perplexity, burstiness, marker analysis for AI detection</div>
+        <div class="mcp-status"><div class="mcp-status-dot"></div> registered</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">report_generator</div>
+        <div class="mcp-tool-desc">Comprehensive interview report with hire recommendation</div>
+        <div class="mcp-status"><div class="mcp-status-dot"></div> registered</div>
+      </div>
+    </div>
+
+    <!-- Architecture -->
+    <div class="section-sep"></div>
+    <label>System Architecture</label>
+    <div class="arch-diagram">┌────────────────────────────────────────────┐
+│         Frontend (HTML5 / React)           │
+│  • Resume Upload  • WebRTC Video/Audio     │
+│  • Real-time Monitoring  • Report View     │
+└──────────────────────┬─────────────────────┘
+                       ↓  HTTP / WebSocket
+┌────────────────────────────────────────────┐
+│      FastAPI Backend — Multi-Agent         │
+│  ┌──────────────────────────────────────┐  │
+│  │  MCP Server — Tool Orchestration     │  │
+│  └──────────────────────────────────────┘  │
+│  ┌────────────────┐  ┌──────────────────┐  │
+│  │ Resume Parser  │  │ Question Gen     │  │
+│  │ spaCy + PyPDF  │  │ RAG + ChromaDB   │  │
+│  └────────────────┘  └──────────────────┘  │
+│  ┌────────────────┐  ┌──────────────────┐  │
+│  │ AI Detector    │  │ Response Eval    │  │
+│  │ Perplexity+    │  │ LLM Scoring      │  │
+│  │ Burstiness     │  │ Sentiment Anal.  │  │
+│  └────────────────┘  └──────────────────┘  │
+│  ┌──────────────────────────────────────┐  │
+│  │   Interview Controller (Adaptive)    │  │
+│  └──────────────────────────────────────┘  │
+└──────────────────────┬─────────────────────┘
+                       ↓
+┌────────────────────────────────────────────┐
+│   Quantized LLM Engine — PyTorch          │
+│   Phi-2 / Llama-3-8B                      │
+│   4-bit NF4 (BitsAndBytes) + LoRA (PEFT)  │
+└──────────────────────┬─────────────────────┘
+                       ↓
+┌────────────────────────────────────────────┐
+│   Vector DB — ChromaDB                    │
+│   all-MiniLM-L6-v2 Embeddings             │
+│   25 questions × 5 domains indexed        │
+└────────────────────────────────────────────┘</div>
+  </div>
+
+  <!-- PAGE: INTERVIEW -->
+  <div id="page-interview" class="page">
+    <div class="interview-layout">
+      <!-- Main column -->
+      <div>
+        <!-- Status bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="timer-ring-wrap">
+              <svg class="ring" viewBox="0 0 80 80">
+                <circle class="ring-bg" cx="40" cy="40" r="35"/>
+                <circle class="ring-fill" id="timer-ring" cx="40" cy="40" r="35" stroke-dashoffset="0"/>
+              </svg>
+              <div class="timer-text" id="timer-display">5:00</div>
+            </div>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem" id="candidate-display">Candidate</div>
+              <div style="font-size:0.8rem;color:var(--text2)" id="session-id-display">Session —</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary btn-sm" onclick="skipQuestion()">Skip ⤳</button>
+            <button class="btn btn-danger btn-sm" onclick="endInterview()">End Interview</button>
+          </div>
+        </div>
+
+        <!-- Question card -->
+        <div class="q-card">
+          <div class="q-header">
+            <div class="q-meta">
+              <span class="q-num" id="q-num">Q1</span>
+              <span class="topic-badge" id="q-topic-badge">python</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="q-spinner" style="display:none"><span class="spinner"></span></span>
+              <span style="font-size:0.75rem;color:var(--text2);font-family:'DM Mono',monospace" id="q-diff-badge">medium</span>
+            </div>
+          </div>
+          <div class="q-body">
+            <div class="q-text" id="q-text">Loading question...</div>
+
+            <div class="answer-area">
+              <textarea id="answer-input" placeholder="Type your answer here... Be detailed and explain your reasoning." 
+                        oninput="updateWordCount()" onkeydown="handleEnter(event)"></textarea>
+              <div class="answer-meta">
+                <div class="word-count" id="word-count">0 words</div>
+                <div class="answer-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="clearAnswer()">Clear</button>
+                  <button class="btn btn-success btn-sm" id="submit-btn" onclick="submitAnswer()">Submit ↵</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evaluation history -->
+        <div id="eval-history" style="margin-top:20px"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Video monitor -->
+        <div class="sidebar-card">
+          <h4>📷 Live Monitor</h4>
+          <div class="video-wrap">
+            <video id="video-el" autoplay muted playsinline></video>
+            <div class="video-overlay">
+              <span class="v-badge live">● REC</span>
+              <span class="v-badge" id="attention-badge">Attention: —</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" style="flex:1" onclick="toggleVideo()" id="vid-btn">📷 Enable</button>
+            <button class="btn btn-secondary btn-sm" style="flex:1" onclick="toggleAudio()" id="aud-btn">🎤 Enable</button>
+          </div>
+        </div>
+
+        <!-- Real-time metrics -->
+        <div class="sidebar-card">
+          <h4>📈 Real-time Metrics</h4>
+          <div class="metric-row">
+            <span class="metric-label">Attention</span>
+            <div class="metric-bar-wrap"><div class="metric-bar green" id="m-attention" style="width:0%"></div></div>
+            <span class="metric-val" id="mv-attention">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Sentiment</span>
+            <div class="metric-bar-wrap"><div class="metric-bar blue" id="m-sentiment" style="width:50%"></div></div>
+            <span class="metric-val" id="mv-sentiment">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Confidence</span>
+            <div class="metric-bar-wrap"><div class="metric-bar blue" id="m-confidence" style="width:0%"></div></div>
+            <span class="metric-val" id="mv-confidence">—</span>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px">AI Detection</div>
+            <div class="gauge-wrap">
+              <div class="gauge"><div class="gauge-fill" id="ai-gauge" style="width:0%;background:var(--accent3)"></div></div>
+              <span class="gauge-label safe" id="ai-gauge-label">Low</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Topics -->
+        <div class="sidebar-card">
+          <h4>📚 Topics</h4>
+          <div class="topic-list" id="topic-list"></div>
+        </div>
+
+        <!-- MCP log -->
+        <div class="sidebar-card">
+          <h4>⚙ MCP Tool Calls</h4>
+          <div class="mcp-call-log" id="mcp-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: REPORT -->
+  <div id="page-report" class="page">
+    <div class="report-header">
+      <div class="candidate-info">
+        <h3 id="rpt-name">—</h3>
+        <p id="rpt-meta">—</p>
+      </div>
+      <div class="recommendation-box" id="rpt-rec-box">
+        <div class="rec-decision" id="rpt-rec">—</div>
+        <div class="rec-conf" id="rpt-conf">—</div>
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <!-- Overall score -->
+      <div class="report-card">
+        <h4>Overall Performance</h4>
+        <div class="score-display">
+          <div class="score-donut">
+            <svg viewBox="0 0 90 90">
+              <circle class="donut-bg" cx="45" cy="45" r="40"/>
+              <circle class="donut-fill" id="rpt-donut" cx="45" cy="45" r="40" stroke-dashoffset="251"/>
+            </svg>
+            <div class="score-num" id="rpt-score-num">—<small>/ 100</small></div>
+          </div>
+          <div class="score-breakdown" id="rpt-breakdown"></div>
+        </div>
+      </div>
+
+      <!-- AI Detection -->
+      <div class="report-card">
+        <h4>AI Detection Analysis</h4>
+        <div class="ai-meter">
+          <div style="font-size:0.82rem;color:var(--text2);margin-bottom:4px">Probability of AI-Generated Responses</div>
+          <div class="ai-big-gauge">
+            <div class="ai-needle" id="rpt-ai-needle" style="left:10%"></div>
+          </div>
+          <div class="ai-labels"><span>Human</span><span>Uncertain</span><span>AI</span></div>
+          <div class="ai-result" id="rpt-ai-result">—</div>
+          <div style="font-size:0.78rem;color:var(--text2);margin-top:4px" id="rpt-ai-concern">—</div>
+        </div>
+      </div>
+
+      <!-- Strengths/Weaknesses -->
+      <div class="report-card">
+        <h4>Topic Analysis</h4>
+        <div id="rpt-topics"></div>
+      </div>
+
+      <!-- Session info -->
+      <div class="report-card">
+        <h4>Session Summary</h4>
+        <div id="rpt-session"></div>
+      </div>
+    </div>
+
+    <!-- Detailed responses -->
+    <div class="responses-section">
+      <h3>Detailed Q&A Review</h3>
+      <div id="rpt-responses"></div>
+    </div>
+
+    <div class="section-sep"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="downloadReport()">⬇ Download Report (JSON)</button>
+      <button class="btn btn-secondary" onclick="showPage('setup')">↩ New Interview</button>
+      <button class="btn btn-secondary" onclick="showPage('landing')">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback toast -->
+<div class="feedback-toast" id="feedback-toast">
+  <div class="toast-score" id="toast-score">—</div>
+  <div class="toast-label">Answer Score</div>
+  <div class="toast-detail" id="toast-detail">—</div>
+</div>
+
+<script>
+// ============================================================
+// HIREAGENT - Complete Frontend Logic
+// ============================================================
+
+// ===== STATE =====
+let state = {
+  session: null,
+  currentPage: 'landing',
+  timer: null,
+  timerSeconds: 300,
+  totalSeconds: 300,
+  questionNumber: 0,
+  currentTopic: '',
+  topicIndex: 0,
+  topicsConfig: [],
+  questions: [],
+  responses: [],
+  aiScores: [],
+  sentimentScores: [],
+  attentionScores: [],
+  topicScores: {},
+  videoStream: null,
+  audioEnabled: false,
+  attentionInterval: null,
+  candidateName: '',
+  startTime: null,
+  sessionId: '',
+};
+
+// ===== QUESTION BANK (RAG Simulation) =====
+const QUESTION_BANK = {
+  python: [
+    "Explain the difference between a list and a tuple in Python. When would you prefer each?",
+    "What are Python decorators and how do you implement them? Give a practical example.",
+    "Explain Python's GIL (Global Interpreter Lock) and its implications for multi-threaded programs.",
+    "What is the difference between deep copy and shallow copy in Python?",
+    "How does Python's memory management and garbage collection work?",
+    "Explain generators and iterators in Python. How do they differ?",
+    "What are context managers and how do you create a custom one?",
+    "Explain the difference between *args and **kwargs with examples."
+  ],
+  dsa: [
+    "Explain how binary search works and analyze its time complexity. When does it fail?",
+    "What is the difference between a stack and a queue? Give real-world use cases for each.",
+    "Explain dynamic programming with an example. What is memoization?",
+    "How do you detect a cycle in a linked list? Describe the Floyd's algorithm.",
+    "Compare different sorting algorithms (quicksort, mergesort, heapsort) in terms of complexity.",
+    "Explain the concept of a hash table and how collision resolution works.",
+    "What is a balanced BST and why is self-balancing important?",
+    "Explain Dijkstra's algorithm and its time complexity."
+  ],
+  system_design: [
+    "How would you design a URL shortening service like bit.ly? Walk through your architecture.",
+    "Explain different load balancing strategies and when to use each.",
+    "What is database sharding? What are its advantages and challenges?",
+    "How would you design a rate limiter? What data structures and algorithms would you use?",
+    "Explain the CAP theorem with real-world examples of systems that make different trade-offs.",
+    "How would you design a distributed cache? Discuss consistency vs. availability trade-offs.",
+    "What is eventual consistency? How does it differ from strong consistency?",
+    "Design a notification system that can handle millions of users."
+  ],
+  aws: [
+    "Explain the difference between S3 and EBS. When would you use each?",
+    "What is AWS Lambda? Explain serverless architecture and its cold start problem.",
+    "What is VPC and how do subnets, security groups, and NACLs work together?",
+    "Compare RDS and DynamoDB. When would you choose one over the other?",
+    "How does AWS Auto Scaling work? What metrics can trigger scaling events?",
+    "Explain the difference between SQS and SNS. When would you use each?",
+    "What is AWS IAM? Explain roles, policies, and the principle of least privilege."
+  ],
+  ml: [
+    "Explain the difference between supervised, unsupervised, and reinforcement learning.",
+    "What is overfitting? How do regularization techniques like L1 and L2 help prevent it?",
+    "Explain gradient descent and its variants (SGD, Adam, RMSprop).",
+    "What is the bias-variance tradeoff? How does it affect model performance?",
+    "Explain the difference between precision and recall. When would you optimize for each?",
+    "What is attention mechanism in transformers? How does self-attention work?",
+    "Explain how backpropagation works in neural networks.",
+    "What is transfer learning and when is it most beneficial?"
+  ]
+};
+
+// ===== AI DETECTION =====
+const AI_INDICATORS = ["certainly", "furthermore", "however", "therefore", "in conclusion", "it is important to note", "additionally", "moreover", "nevertheless", "subsequently", "comprehensive", "fundamental"];
+const HUMAN_INDICATORS = ["um", "uh", "like", "you know", "i think", "maybe", "probably", "i guess", "well", "sort of", "kind of", "basically", "actually"];
+
+function detectAI(text) {
+  const lower = text.toLowerCase();
+  const words = text.split(/\s+/);
+  
+  // Count markers
+  const humanCount = HUMAN_INDICATORS.filter(m => lower.includes(m)).length;
+  const aiCount = AI_INDICATORS.filter(m => lower.includes(m)).length;
+  
+  // Perplexity (word length variance)
+  const lengths = words.map(w => w.length);
+  const mean = lengths.reduce((a,b) => a+b, 0) / lengths.length;
+  const variance = lengths.reduce((a,b) => a + Math.pow(b-mean,2), 0) / lengths.length;
+  const perplexity = Math.min(100, variance * 10);
+  
+  // Burstiness (sentence length variance)
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+  const sLengths = sentences.map(s => s.split(/\s+/).length);
+  const sMean = sLengths.reduce((a,b) => a+b, 0) / (sLengths.length || 1);
+  const sVariance = sLengths.reduce((a,b) => a + Math.pow(b-sMean,2), 0) / (sLengths.length || 1);
+  const burstiness = Math.min(1, sVariance / 50);
+  
+  // Average sentence length (AI tends toward uniform, longer sentences)
+  const avgSentLen = sMean;
+  const uniformPenalty = sVariance < 5 ? 0.2 : 0;
+  
+  // Score
+  const humanScore = humanCount * 0.3 + (perplexity / 100) * 0.4 + burstiness * 0.3;
+  const aiScore = aiCount * 0.5 + (1 - burstiness) * 0.4 + uniformPenalty;
+  const total = humanScore + aiScore || 1;
+  
+  return Math.min(1, Math.max(0, aiScore / total));
+}
+
+function analyzeSentiment(text) {
+  const positive = ["good","great","excellent","yes","definitely","sure","love","enjoy","understand","clear","easy","perfect","right"];
+  const negative = ["no","not","never","don't","can't","won't","bad","difficult","unsure","unclear","wrong","hard"];
+  const lower = text.toLowerCase();
+  const pos = positive.filter(w => lower.includes(w)).length;
+  const neg = negative.filter(w => lower.includes(w)).length;
+  return pos + neg === 0 ? 0.5 : pos / (pos + neg);
+}
+
+function scoreAnswer(question, answer, topic) {
+  const words = answer.trim().split(/\s+/).length;
+  const hasKeywords = question.toLowerCase().split(/\s+/)
+    .filter(w => w.length > 4)
+    .filter(w => answer.toLowerCase().includes(w)).length;
+  
+  let base = Math.min(0.9, words / 150);
+  base += hasKeywords * 0.05;
+  base = Math.min(1, Math.max(0.1, base));
+  
+  // Adjust for length quality
+  if (words < 20) base *= 0.5;
+  if (words > 80) base = Math.min(base + 0.1, 0.95);
+  
+  return base + (Math.random() * 0.15 - 0.07);
+}
+
+// ===== RESUME PARSING =====
+const SKILL_KEYWORDS = ["python","java","javascript","react","node","nodejs","aws","azure","gcp","docker","kubernetes","ml","machine learning","deep learning","tensorflow","pytorch","dsa","data structures","algorithms","system design","microservices","rest","api","sql","nosql","mongodb","postgresql","redis","kafka","elasticsearch"];
+
+function parseResumeText(text) {
+  const lower = text.toLowerCase();
+  return SKILL_KEYWORDS.filter(s => lower.includes(s)).slice(0, 12);
+}
+
+// ===== UI UTILITIES =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  state.currentPage = name;
+  
+  document.getElementById('nav-session-info').style.display = 
+    (name === 'interview') ? 'inline-flex' : 'none';
+}
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('setup-log');
+  if (!log) return;
+  const d = document.createElement('div');
+  d.className = 'log-line ' + type;
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function addMCPLog(tool, status = 'ok') {
+  const log = document.getElementById('mcp-log');
+  if (!log) return;
+  const d = document.createElement('div');
+  d.className = 'mcp-log-item';
+  d.innerHTML = `<div class="mcp-log-dot ${status}"></div>${tool}`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showToast(score, detail) {
+  const toast = document.getElementById('feedback-toast');
+  const scoreEl = document.getElementById('toast-score');
+  const pct = Math.round(score * 100);
+  
+  scoreEl.textContent = pct + '%';
+  scoreEl.className = 'toast-score ' + (pct >= 70 ? 'high' : pct >= 45 ? 'mid' : 'low');
+  document.getElementById('toast-detail').textContent = detail;
+  
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ===== FILE HANDLING =====
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  const dz = document.getElementById('dropzone');
+  document.getElementById('dz-icon').textContent = '✅';
+  document.getElementById('dz-title').textContent = file.name;
+  document.getElementById('dz-sub').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  dz.classList.add('loaded');
+  addLog('File loaded: ' + file.name, 'success');
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('resume-text').value = e.target.result;
+    parseResume();
+  };
+  reader.readAsText(file);
+}
+
+function parseResume() {
+  const text = document.getElementById('resume-text').value;
+  if (!text.trim()) {
+    // Use sample resume
+    document.getElementById('resume-text').value = SAMPLE_RESUME;
+    parseResume();
+    return;
+  }
+  
+  addLog('Parsing resume with NLP...', 'info');
+  addMCPLog('resume_parser → invoked');
+  
+  setTimeout(() => {
+    const skills = parseResumeText(text);
+    renderSkills(skills);
+    addLog('Skills extracted: ' + skills.join(', '), 'success');
+    addMCPLog('resume_parser → success (' + skills.length + ' skills)', 'ok');
+  }, 600);
+}
+
+const SAMPLE_RESUME = `John Doe — Senior Software Engineer
+
+SKILLS: Python, Java, JavaScript, React, Node.js, AWS, Docker, Kubernetes, Machine Learning, TensorFlow, PyTorch, SQL, MongoDB, REST APIs, Microservices, System Design, Data Structures, Algorithms, Redis
+
+EXPERIENCE:
+• 5 years Python development — Django, FastAPI, Flask
+• 3 years AWS cloud — Lambda, EC2, S3, RDS, DynamoDB
+• Machine learning pipelines — recommendation systems
+• System design for high-traffic distributed systems
+
+EDUCATION: MSc Artificial Intelligence | BSc Computer Science
+
+PROJECTS:
+• Recommendation engine serving 1M+ users
+• Distributed caching layer with Redis cluster
+• CI/CD pipeline for 20+ microservices`;
+
+function renderSkills(skills) {
+  const container = document.getElementById('skills-container');
+  container.innerHTML = '';
+  skills.forEach(skill => {
+    const tag = document.createElement('div');
+    tag.className = 'skill-tag';
+    tag.innerHTML = `${skill} <span class="remove" onclick="removeSkill(this,'${skill}')">×</span>`;
+    container.appendChild(tag);
+  });
+}
+
+function removeSkill(el, skill) {
+  el.parentElement.remove();
+}
+
+function getSkills() {
+  return Array.from(document.querySelectorAll('.skill-tag'))
+    .map(t => t.textContent.replace('×','').trim());
+}
+
+function getDomains() {
+  return Array.from(document.querySelectorAll('.domain-check:checked')).map(c => c.value);
+}
+
+// ===== TIMER =====
+function startTimer(seconds) {
+  state.timerSeconds = seconds;
+  state.totalSeconds = seconds;
+  
+  clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    state.timerSeconds--;
+    updateTimerDisplay();
+    
+    if (state.timerSeconds <= 0) {
+      clearInterval(state.timer);
+      endInterview();
+    }
+  }, 1000);
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timerSeconds / 60);
+  const s = state.timerSeconds % 60;
+  document.getElementById('timer-display').textContent = 
+    m + ':' + s.toString().padStart(2,'0');
+  
+  // Update ring
+  const pct = state.timerSeconds / state.totalSeconds;
+  const circumference = 2 * Math.PI * 35;
+  const offset = circumference * (1 - pct);
+  const ring = document.getElementById('timer-ring');
+  ring.style.strokeDashoffset = offset;
+  
+  // Color change
+  ring.style.stroke = pct > 0.5 ? 'var(--accent)' : pct > 0.25 ? '#ffa500' : 'var(--accent2)';
+  
+  document.getElementById('nav-timer').textContent = m + ':' + s.toString().padStart(2,'0');
+}
+
+// ===== QUESTION GENERATION (RAG Simulation) =====
+function getNextQuestion(topic, asked = []) {
+  const pool = QUESTION_BANK[topic] || QUESTION_BANK.python;
+  const available = pool.filter(q => !asked.includes(q));
+  if (available.length === 0) return pool[Math.floor(Math.random() * pool.length)];
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function typeQuestion(text) {
+  const el = document.getElementById('q-text');
+  el.textContent = '';
+  el.classList.add('typing');
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < text.length) {
+      el.textContent += text[i++];
+    } else {
+      clearInterval(iv);
+      el.classList.remove('typing');
+    }
+  }, 18);
+}
+
+function setQuestion(topic, questionText) {
+  state.questionNumber++;
+  state.currentTopic = topic;
+  
+  // Update UI
+  document.getElementById('q-num').textContent = 'Q' + state.questionNumber;
+  const badge = document.getElementById('q-topic-badge');
+  badge.textContent = topic.replace('_',' ');
+  badge.className = 'topic-badge ' + topic.replace(' ','_');
+  document.getElementById('q-diff-badge').textContent = 
+    document.getElementById('difficulty')?.value || 'medium';
+  
+  typeQuestion(questionText);
+  state.questions.push({ topic, question: questionText, timestamp: Date.now() });
+  
+  // MCP log
+  addMCPLog('question_generator → ' + topic);
+}
+
+// ===== INTERVIEW START =====
+function startInterview() {
+  const name = document.getElementById('candidate-name').value || 'Candidate';
+  const domains = getDomains();
+  const duration = parseInt(document.getElementById('duration').value) || 5;
+  const skills = getSkills();
+  
+  if (domains.length === 0) { alert('Please select at least one domain.'); return; }
+  
+  // Merge skills and domains
+  const allTopics = [...new Set([...domains, ...skills.filter(s => QUESTION_BANK[s])])].filter(t => QUESTION_BANK[t]);
+  if (allTopics.length === 0) { alert('No valid topics found. Please select domains.'); return; }
+  
+  state.session = { name, domains: allTopics, duration, skills };
+  state.candidateName = name;
+  state.sessionId = 'sess_' + Date.now();
+  state.topicsConfig = allTopics;
+  state.topicIndex = 0;
+  state.questions = [];
+  state.responses = [];
+  state.aiScores = [];
+  state.sentimentScores = [];
+  state.attentionScores = [];
+  state.topicScores = {};
+  state.startTime = Date.now();
+  state.questionNumber = 0;
+  
+  // Init topic scores
+  allTopics.forEach(t => state.topicScores[t] = []);
+  
+  addLog('Starting interview for ' + name, 'success');
+  addLog('Topics: ' + allTopics.join(', '), 'info');
+  addMCPLog('interview_controller → session_started');
+  
+  showPage('interview');
+  
+  // Update session display
+  document.getElementById('candidate-display').textContent = name;
+  document.getElementById('session-id-display').textContent = state.sessionId;
+  
+  // Render topics
+  renderTopicList();
+  
+  // Start timer
+  startTimer(duration * 60);
+  
+  // Start video if enabled
+  if (document.getElementById('enable-video').checked) toggleVideo();
+  
+  // Start attention simulation
+  startAttentionSimulation();
+  
+  // First question
+  const firstTopic = allTopics[0];
+  const firstQ = getNextQuestion(firstTopic);
+  setQuestion(firstTopic, firstQ);
+  updateTopicList();
+  
+  // Clear eval history
+  document.getElementById('eval-history').innerHTML = '';
+}
+
+function renderTopicList() {
+  const list = document.getElementById('topic-list');
+  list.innerHTML = '';
+  state.topicsConfig.forEach((topic, i) => {
+    const item = document.createElement('div');
+    item.className = 'topic-item';
+    item.id = 'topic-item-' + i;
+    item.innerHTML = `
+      <div class="topic-dot pending" id="tdot-${i}"></div>
+      <span class="topic-name">${topic.replace('_',' ')}</span>
+      <span class="topic-score" id="tscore-${i}">—</span>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function updateTopicList() {
+  state.topicsConfig.forEach((topic, i) => {
+    const dot = document.getElementById('tdot-' + i);
+    const score = document.getElementById('tscore-' + i);
+    if (!dot) return;
+    
+    const scores = state.topicScores[topic] || [];
+    if (i < state.topicIndex) {
+      dot.className = 'topic-dot done';
+      const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : 0;
+      score.textContent = Math.round(avg * 100) + '%';
+    } else if (i === state.topicIndex) {
+      dot.className = 'topic-dot active';
+      score.textContent = scores.length ? Math.round((scores.reduce((a,b)=>a+b,0)/scores.length)*100)+'%' : '—';
+    } else {
+      dot.className = 'topic-dot pending';
+    }
+  });
+}
+
+// ===== ANSWER SUBMISSION =====
+function updateWordCount() {
+  const text = document.getElementById('answer-input').value;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  document.getElementById('word-count').textContent = words + ' word' + (words !== 1 ? 's' : '');
+}
+
+function clearAnswer() {
+  document.getElementById('answer-input').value = '';
+  updateWordCount();
+}
+
+function handleEnter(e) {
+  if (e.ctrlKey && e.key === 'Enter') submitAnswer();
+}
+
+function submitAnswer() {
+  const answer = document.getElementById('answer-input').value.trim();
+  if (!answer || answer.length < 5) return;
+  
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  document.getElementById('q-spinner').style.display = 'inline-block';
+  
+  addMCPLog('answer_evaluator → evaluating...');
+  addMCPLog('ai_detector → analyzing...');
+  
+  setTimeout(() => {
+    processAnswer(answer);
+    btn.disabled = false;
+    btn.innerHTML = 'Submit ↵';
+    document.getElementById('q-spinner').style.display = 'none';
+  }, 800 + Math.random() * 600);
+}
+
+function processAnswer(answer) {
+  const currentQ = state.questions[state.questions.length - 1];
+  const topic = state.currentTopic;
+  
+  // Evaluate
+  const score = Math.min(1, Math.max(0, scoreAnswer(currentQ.question, answer, topic)));
+  const aiProb = detectAI(answer);
+  const sentiment = analyzeSentiment(answer);
+  
+  // Store
+  state.responses.push({ question: currentQ.question, answer, topic, score, aiProb, sentiment, timestamp: Date.now() });
+  state.topicScores[topic] = state.topicScores[topic] || [];
+  state.topicScores[topic].push(score);
+  state.aiScores.push(aiProb);
+  state.sentimentScores.push(sentiment);
+  
+  // Update metrics UI
+  updateMetrics(score, aiProb, sentiment);
+  
+  // Show toast
+  const detail = aiProb > 0.6 ? '⚠️ High AI probability detected' :
+                 score > 0.7 ? '✓ Strong answer! Good depth.' :
+                 score > 0.45 ? '↗ Decent answer. More detail would help.' :
+                 '↓ Answer needs more depth and specifics.';
+  showToast(score, detail);
+  
+  // Add to eval history
+  addEvalCard(currentQ.question, answer, score, aiProb, topic);
+  
+  // MCP logs
+  addMCPLog('answer_evaluator → score: ' + Math.round(score*100) + '%', 'ok');
+  addMCPLog('ai_detector → ' + Math.round(aiProb*100) + '% AI prob', 'ok');
+  
+  // Next question logic
+  const skipTopic = answer.toLowerCase().includes("don't know") || 
+                    answer.toLowerCase().includes("not sure") ||
+                    (score < 0.3 && state.topicScores[topic].length >= 2);
+  
+  if (skipTopic) moveTopic();
+  else nextQuestion();
+  
+  updateTopicList();
+  clearAnswer();
+}
+
+function updateMetrics(score, aiProb, sentiment) {
+  // Attention (simulated)
+  const att = 0.6 + Math.random() * 0.4;
+  state.attentionScores.push(att);
+  document.getElementById('m-attention').style.width = Math.round(att*100) + '%';
+  document.getElementById('mv-attention').textContent = Math.round(att*100) + '%';
+  document.getElementById('attention-badge').textContent = 'Attn: ' + Math.round(att*100) + '%';
+  
+  document.getElementById('m-sentiment').style.width = Math.round(sentiment*100) + '%';
+  document.getElementById('mv-sentiment').textContent = Math.round(sentiment*100) + '%';
+  
+  document.getElementById('m-confidence').style.width = Math.round(score*100) + '%';
+  document.getElementById('mv-confidence').textContent = Math.round(score*100) + '%';
+  
+  // AI gauge
+  const aiPct = Math.round(aiProb*100);
+  document.getElementById('ai-gauge').style.width = aiPct + '%';
+  document.getElementById('ai-gauge').style.background = 
+    aiProb > 0.6 ? 'var(--accent2)' : aiProb > 0.4 ? '#ffa500' : 'var(--accent3)';
+  const lbl = document.getElementById('ai-gauge-label');
+  if (aiProb > 0.6) { lbl.textContent = 'HIGH'; lbl.className = 'gauge-label danger'; }
+  else if (aiProb > 0.4) { lbl.textContent = 'MED'; lbl.className = 'gauge-label warn'; }
+  else { lbl.textContent = 'LOW'; lbl.className = 'gauge-label safe'; }
+}
+
+function addEvalCard(q, a, score, aiProb, topic) {
+  const hist = document.getElementById('eval-history');
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;border-left:3px solid ' + 
+    (score > 0.7 ? 'var(--accent3)' : score > 0.45 ? '#ffa500' : 'var(--accent2)');
+  card.innerHTML = `
+    <div style="font-size:0.78rem;color:var(--text2);margin-bottom:6px;font-family:'DM Mono',monospace">${topic.toUpperCase()} — Q${state.responses.length}</div>
+    <div style="font-size:0.85rem;font-weight:500;margin-bottom:6px">${q}</div>
+    <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px;line-height:1.5">${a.substring(0,200)}${a.length>200?'...':''}</div>
+    <div style="display:flex;gap:10px">
+      <span style="padding:3px 10px;border-radius:20px;font-size:0.7rem;font-family:'DM Mono',monospace;background:rgba(108,99,255,0.12);color:var(--accent);border:1px solid rgba(108,99,255,0.2)">Score: ${Math.round(score*100)}%</span>
+      <span style="padding:3px 10px;border-radius:20px;font-size:0.7rem;font-family:'DM Mono',monospace;background:rgba(255,107,107,0.1);color:var(--accent2);border:1px solid rgba(255,107,107,0.2)">AI: ${Math.round(aiProb*100)}%</span>
+    </div>
+  `;
+  hist.insertBefore(card, hist.firstChild);
+}
+
+function nextQuestion() {
+  const topic = state.topicsConfig[state.topicIndex];
+  const askedQs = state.questions.map(q => q.question);
+  const q = getNextQuestion(topic, askedQs);
+  setQuestion(topic, q);
+}
+
+function moveTopic() {
+  state.topicIndex++;
+  if (state.topicIndex >= state.topicsConfig.length) {
+    endInterview();
+    return;
+  }
+  const topic = state.topicsConfig[state.topicIndex];
+  const q = getNextQuestion(topic);
+  setQuestion(topic, q);
+  addMCPLog('interview_controller → topic_changed: ' + topic);
+}
+
+function skipQuestion() {
+  const answer = document.getElementById('answer-input').value.trim();
+  if (answer) { submitAnswer(); return; }
+  // Skip to next question same topic
+  nextQuestion();
+  clearAnswer();
+}
+
+// ===== VIDEO / AUDIO =====
+async function toggleVideo() {
+  const btn = document.getElementById('vid-btn');
+  const video = document.getElementById('video-el');
+  
+  if (state.videoStream) {
+    state.videoStream.getTracks().forEach(t => t.stop());
+    state.videoStream = null;
+    video.srcObject = null;
+    btn.textContent = '📷 Enable';
+    return;
+  }
+  
+  try {
+    state.videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    video.srcObject = state.videoStream;
+    btn.textContent = '📷 Disable';
+    addLog('Webcam connected', 'success');
+  } catch(e) {
+    addLog('Camera access denied', 'warn');
+  }
+}
+
+function toggleAudio() {
+  const btn = document.getElementById('aud-btn');
+  state.audioEnabled = !state.audioEnabled;
+  btn.textContent = state.audioEnabled ? '🎤 Disable' : '🎤 Enable';
+  addLog(state.audioEnabled ? 'Audio monitoring active' : 'Audio monitoring off', 'info');
+}
+
+function startAttentionSimulation() {
+  clearInterval(state.attentionInterval);
+  state.attentionInterval = setInterval(() => {
+    const att = 0.55 + Math.random() * 0.45;
+    document.getElementById('m-attention').style.width = Math.round(att*100) + '%';
+    document.getElementById('mv-attention').textContent = Math.round(att*100) + '%';
+    document.getElementById('attention-badge').textContent = 'Attn: ' + Math.round(att*100) + '%';
+  }, 3000);
+}
+
+// ===== END INTERVIEW & REPORT =====
+function endInterview() {
+  clearInterval(state.timer);
+  clearInterval(state.attentionInterval);
+  if (state.videoStream) {
+    state.videoStream.getTracks().forEach(t => t.stop());
+    state.videoStream = null;
+  }
+  
+  addMCPLog('report_generator → generating...', 'pending');
+  setTimeout(() => {
+    addMCPLog('report_generator → complete', 'ok');
+    generateReport();
+    showPage('report');
+    launchConfetti();
+  }, 800);
+}
+
+function generateReport() {
+  // Compute scores
+  const allScores = state.responses.map(r => r.score);
+  const overall = allScores.length ? allScores.reduce((a,b)=>a+b,0)/allScores.length : 0;
+  const avgAI = state.aiScores.length ? state.aiScores.reduce((a,b)=>a+b,0)/state.aiScores.length : 0;
+  const avgSent = state.sentimentScores.length ? state.sentimentScores.reduce((a,b)=>a+b,0)/state.sentimentScores.length : 0.5;
+  const avgAtt = state.attentionScores.length ? state.attentionScores.reduce((a,b)=>a+b,0)/state.attentionScores.length : 0.8;
+  
+  const topicAvgs = {};
+  for (const [t, scores] of Object.entries(state.topicScores)) {
+    if (scores.length) topicAvgs[t] = scores.reduce((a,b)=>a+b,0)/scores.length;
+  }
+  
+  const strengths = Object.entries(topicAvgs).filter(([,s]) => s >= 0.7).map(([t]) => t);
+  const weaknesses = Object.entries(topicAvgs).filter(([,s]) => s < 0.5).map(([t]) => t);
+  
+  let rec, recClass;
+  if (overall >= 0.7 && avgAI < 0.3) { rec = 'STRONG HIRE'; recClass = 'hire'; }
+  else if (overall >= 0.5 && avgAI < 0.5) { rec = 'HIRE'; recClass = 'hire'; }
+  else if (overall >= 0.35) { rec = 'MAYBE'; recClass = 'maybe'; }
+  else { rec = 'NO HIRE'; recClass = 'nohire'; }
+  
+  const duration = ((Date.now() - state.startTime) / 60000).toFixed(1);
+  
+  // Candidate info
+  document.getElementById('rpt-name').textContent = state.candidateName;
+  document.getElementById('rpt-meta').textContent = 
+    state.sessionId + ' · ' + new Date(state.startTime).toLocaleString();
+  
+  // Recommendation
+  const recBox = document.getElementById('rpt-rec-box');
+  recBox.className = 'recommendation-box ' + recClass;
+  document.getElementById('rpt-rec').textContent = rec;
+  document.getElementById('rpt-rec').className = 'rec-decision ' + recClass;
+  document.getElementById('rpt-conf').textContent = 
+    Math.abs(overall - 0.5) > 0.2 ? 'High Confidence' : 'Medium Confidence';
+  
+  // Donut
+  const pct = Math.round(overall * 100);
+  const circumference = 2 * Math.PI * 40;
+  const offset = circumference * (1 - overall);
+  const donut = document.getElementById('rpt-donut');
+  donut.style.strokeDashoffset = circumference;
+  donut.style.stroke = pct >= 70 ? 'var(--accent3)' : pct >= 45 ? '#ffa500' : 'var(--accent2)';
+  setTimeout(() => donut.style.strokeDashoffset = offset, 300);
+  document.getElementById('rpt-score-num').innerHTML = pct + '<small>/ 100</small>';
+  
+  // Breakdown
+  const breakdown = document.getElementById('rpt-breakdown');
+  const items = [
+    { label: 'Technical', val: Math.round(overall*100) },
+    { label: 'Sentiment', val: Math.round(avgSent*100) },
+    { label: 'Attention', val: Math.round(avgAtt*100) },
+  ];
+  breakdown.innerHTML = items.map(item => `
+    <div class="breakdown-item">
+      <div class="breakdown-label">${item.label} <span>${item.val}%</span></div>
+      <div class="breakdown-bar"><div class="breakdown-bar-fill" style="width:${item.val}%;background:${item.val>=70?'var(--accent3)':item.val>=45?'#ffa500':'var(--accent2)'}"></div></div>
+    </div>
+  `).join('');
+  
+  // AI detection
+  const aiPct = Math.round(avgAI * 100);
+  document.getElementById('rpt-ai-needle').style.left = aiPct + '%';
+  document.getElementById('rpt-ai-result').textContent = 
+    aiPct < 30 ? '✅ Likely Human' : aiPct < 60 ? '⚠️ Uncertain' : '🚨 Likely AI-Generated';
+  document.getElementById('rpt-ai-result').style.color = 
+    aiPct < 30 ? 'var(--accent3)' : aiPct < 60 ? '#ffa500' : 'var(--accent2)';
+  document.getElementById('rpt-ai-concern').textContent = 
+    'AI Detection: ' + (aiPct < 30 ? 'LOW' : aiPct < 60 ? 'MEDIUM' : 'HIGH') + ' concern (' + aiPct + '%)';
+  
+  // Topics
+  const topicsEl = document.getElementById('rpt-topics');
+  topicsEl.innerHTML = Object.entries(topicAvgs).map(([t, s]) => {
+    const pct = Math.round(s*100);
+    const color = pct>=70?'var(--accent3)':pct>=45?'#ffa500':'var(--accent2)';
+    return `
+      <div class="breakdown-item">
+        <div class="breakdown-label" style="text-transform:capitalize">${t.replace('_',' ')} <span style="color:${color}">${pct}%</span></div>
+        <div class="breakdown-bar"><div class="breakdown-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+    `;
+  }).join('') + (strengths.length ? `<div style="margin-top:12px;font-size:0.78rem;color:var(--accent3)">✓ Strong: ${strengths.map(s=>s.replace('_',' ')).join(', ')}</div>` : '') +
+    (weaknesses.length ? `<div style="font-size:0.78rem;color:var(--accent2);margin-top:4px">✗ Weak: ${weaknesses.map(s=>s.replace('_',' ')).join(', ')}</div>` : '');
+  
+  // Session info
+  document.getElementById('rpt-session').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${[
+        ['Duration', duration + ' min'],
+        ['Questions Asked', state.questions.length],
+        ['Topics Covered', Object.keys(topicAvgs).length],
+        ['Avg Attention', Math.round(avgAtt*100) + '%'],
+        ['AI Detection', aiPct + '%'],
+      ].map(([k,v]) => `
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text2)">${k}</span>
+          <span style="font-family:'DM Mono',monospace;font-weight:500">${v}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  
+  // Detailed responses
+  const respEl = document.getElementById('rpt-responses');
+  respEl.innerHTML = state.responses.map((r, i) => `
+    <div class="response-item">
+      <div class="resp-q">
+        <span class="resp-q-num">Q${i+1}</span>
+        <span>${r.question}</span>
+      </div>
+      <div class="resp-a">${r.answer.substring(0,300)}${r.answer.length>300?'...':''}</div>
+      <div class="resp-scores">
+        <span class="resp-score-pill pill-score">Score: ${Math.round(r.score*100)}%</span>
+        <span class="resp-score-pill pill-ai">AI: ${Math.round(r.aiProb*100)}%</span>
+        <span class="resp-score-pill" style="background:rgba(136,136,170,0.1);color:var(--text2)">
+          ${r.topic.replace('_',' ')}
+        </span>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--text2);font-size:0.9rem;text-align:center;padding:20px">No responses recorded</div>';
+  
+  // Store report for download
+  state.report = { candidate: state.candidateName, session: state.sessionId, date: new Date(state.startTime).toISOString(),
+    overall: pct, recommendation: rec, aiDetection: aiPct, duration, topics: topicAvgs, responses: state.responses };
+}
+
+function downloadReport() {
+  const blob = new Blob([JSON.stringify(state.report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'hireagent_report_' + state.candidateName.replace(/\s+/g,'_') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== CONFETTI =====
+function launchConfetti() {
+  const colors = ['#6c63ff','#43e97b','#ff6b6b','#ffa83b','#a78bfa'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = `left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};
+        animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;
+        border-radius:${Math.random()>0.5?'50%':'2px'};width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }, i * 30);
+  }
+}
+
+// ===== INIT =====
+// Pre-fill resume
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('resume-text').value = SAMPLE_RESUME;
+  setTimeout(() => parseResume(), 500);
+});
+</script>
+</body>
+</html>
