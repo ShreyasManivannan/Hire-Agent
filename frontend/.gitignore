@@ -22,3 +22,56 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+.env
+venv/
+env/
+.venv/
+
+# Django/Flask cache
+instance/
+*.log
+
+# Node / React
+node_modules/
+dist/
+build/
+.next/
+.npm/
+
+# React environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+
+# VS Code
+.vscode/
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python compile files
+*.sqlite3
+*.db
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Temporary
+tmp/
+temp/
+*.tmp
